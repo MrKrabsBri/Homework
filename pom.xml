@@ -63,6 +63,16 @@
 			<artifactId>spring-boot-starter-webservices-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>wsdl4j</groupId>
+			<artifactId>wsdl4j</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>jakarta.xml.bind</groupId>
+			<artifactId>jakarta.xml.bind-api</artifactId>
+			<version>4.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -90,6 +100,28 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>jaxb2-maven-plugin</artifactId>
+				<version>4.0.0</version>
+				<executions>
+					<execution>
+						<id>xjc</id>
+						<phase>generate-sources</phase> <!-- to generate classes before compile, in generate-sources phase-->
+						<goals>
+							<goal>xjc</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>src/main/resources/order-document.xsd</source>
+							</sources>
+							 <!--<schemaDirectory>src/main/resources/order-document.xsd</schemaDirectory>-->
+							<outputDirectory>target/generated-sources/xjc</outputDirectory>
+							<clearOutputDir>true</clearOutputDir>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
