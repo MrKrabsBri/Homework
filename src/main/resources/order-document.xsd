@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://customercontract.com"
+           targetNamespace="http://customercontract.com"
+           elementFormDefault="qualified">
+
+
+
+    <!-- Reference -->
+    <xs:complexType name = "OrderDocument">
+        <xs:sequence>
+            <xs:element name="ServiceId" type="tns:NonEmptyString"/>
+            <xs:element name="ServiceType" type="tns:NonEmptyString"/>
+            <xs:element name="CustomerId" type="xs:string"/>
+            <xs:element name="SubscriptionId" type="xs:string"/>
+            <xs:element name="ServiceDetails" type="tns:ServiceDetails"/>
+            <xs:element name="CustomerDetails" type="tns:CustomerDetails"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ServiceDetails"> <!-- sub variable -->
+        <xs:sequence>
+            <xs:element name="PlanType" type="xs:string"/>
+            <xs:element name="DataLimit" type="xs:string" minOccurs="0"/>
+            <xs:element name="RoamingEnabled" type="xs:boolean"/>
+            <xs:element name="AdditionalServices" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="CustomerDetails"> <!-- sub variable -->
+        <xs:sequence>
+            <xs:element name="Name" type="xs:string"/>
+            <xs:element name="Address" type="tns:Address"/>
+            <xs:element name="ContactNumber" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="Address"> <!-- subvariable of CustomerDetails (Address) -->
+        <xs:sequence>
+            <xs:element name="Street" type="xs:string" minOccurs="0"/>
+            <xs:element name="City" type="xs:string" minOccurs="0"/>
+            <xs:element name="PostalCode" type="xs:string" minOccurs="0"/>
+            <xs:element name="Country" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- test Request TODO: needed for validation?-->
+    <xs:simpleType name="NonEmptyString">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Create Order Document Request -->
+    <xs:element name="CreateOrderDocumentRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="OrderDocument" type="tns:OrderDocument"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Create Order Document Response -->
+    <xs:element name="CreateOrderDocumentResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="status" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+<!--    &lt;!&ndash; Get Order Document List Request &ndash;&gt;
+    <xs:element name="GetOrderDocumentListRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ServiceId" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>-->
+    <!-- Get Order Document List Request -->
+    <xs:element name="GetOrderDocumentListRequest">
+        <xs:complexType/>
+    </xs:element>
+
+    <!-- Get Order Document List Response -->
+    <xs:element name="GetOrderDocumentListResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="OrderDocument" type="tns:OrderDocument" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Get Order Document By Id Request -->
+    <xs:element name="GetOrderDocumentByIdRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ServiceId" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Get Order Document By Id response -->
+    <xs:element name="GetOrderDocumentByIdResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="OrderDocument" type="tns:OrderDocument"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Get Order Document By Id Request -->
+    <xs:element name="UpdateOrderDocumentByIdRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="ServiceId" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Get Order Document By Id response -->
+    <xs:element name="UpdateOrderDocumentByIdResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="OrderDocument" type="tns:OrderDocument"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>
+
+
