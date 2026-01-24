@@ -45,8 +45,6 @@
         </xs:sequence>
     </xs:complexType>
 
-    <!--pabandom be sito-->
-    <!-- test Request TODO: needed for validation? answer:needed, bet butent del sito veikia validation, why-->
     <xs:simpleType name="NonEmptyString">
         <xs:restriction base="xs:string">
             <xs:minLength value="1"/>
