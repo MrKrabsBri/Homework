@@ -7,14 +7,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.ws.config.annotation.EnableWs;
 import org.springframework.ws.config.annotation.WsConfigurer;
+import org.springframework.ws.server.EndpointInterceptor;
+import org.springframework.ws.soap.server.endpoint.interceptor.PayloadValidatingInterceptor;
 import org.springframework.ws.transport.http.MessageDispatcherServlet;
 import org.springframework.ws.wsdl.wsdl11.DefaultWsdl11Definition;
 import org.springframework.xml.xsd.SimpleXsdSchema;
 import org.springframework.xml.xsd.XsdSchema;
 
+import java.util.List;
+
 @Configuration
 @EnableWs
 public class WebServiceConfiguration implements WsConfigurer {
+
+    //private PayloadValidatingInterceptor validatingInterceptor;
 
     @Bean
     public ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(
@@ -38,8 +44,22 @@ public class WebServiceConfiguration implements WsConfigurer {
         wsdl11Definition.setLocationUri("/ws");
         wsdl11Definition.setTargetNamespace("http://customercontract.com/");
         wsdl11Definition.setSchema(xsd);
-
         return wsdl11Definition;
+    }
+
+    @Bean
+    public PayloadValidatingInterceptor validatingInterceptor(XsdSchema customerContractSchema) {
+        PayloadValidatingInterceptor interceptor = new PayloadValidatingInterceptor();
+        interceptor.setXsdSchema(customerContractSchema);
+        interceptor.setValidateRequest(true);
+        interceptor.setValidateResponse(false);
+        interceptor.setAddValidationErrorDetail(true);
+        return interceptor;
+    }
+
+    @Override
+    public void addInterceptors(List<EndpointInterceptor> interceptors) {
+        interceptors.add(validatingInterceptor(customerContractSchema()));
     }
 
 }

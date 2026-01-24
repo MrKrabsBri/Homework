@@ -1,10 +1,7 @@
 package com.krabs.Homework.entity;
 
 import jakarta.persistence.Embeddable;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
@@ -14,8 +11,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ServiceDetailsEntity {
+   // @NonNull
     private String planType;
     private String dataLimit;
-    private boolean roamingEnabled;
+    private Boolean roamingEnabled;
     private List<String> additionalServices;
 }

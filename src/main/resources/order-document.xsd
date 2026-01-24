@@ -4,23 +4,24 @@
            targetNamespace="http://customercontract.com"
            elementFormDefault="qualified">
 
-
-
     <!-- Reference -->
     <xs:complexType name = "OrderDocument">
         <xs:sequence>
             <xs:element name="ServiceId" type="tns:NonEmptyString"/>
             <xs:element name="ServiceType" type="tns:NonEmptyString"/>
-            <xs:element name="CustomerId" type="xs:string"/>
-            <xs:element name="SubscriptionId" type="xs:string"/>
-            <xs:element name="ServiceDetails" type="tns:ServiceDetails"/>
+            <!--TODO:Check-->
+            <xs:element name="CustomerId" type="tns:NonEmptyString"/>
+            <xs:element name="SubscriptionId" type="tns:NonEmptyString"/>
+            <xs:element name="ServiceDetails" type="tns:ServiceDetails"/><!--buvo dar ir minOccurs="1"-->
             <xs:element name="CustomerDetails" type="tns:CustomerDetails"/>
+            <xs:element name="VIPCustomer" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="SpecialOffer" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="ServiceDetails"> <!-- sub variable -->
         <xs:sequence>
-            <xs:element name="PlanType" type="xs:string"/>
+            <xs:element name="PlanType" type="tns:NonEmptyString"/>
             <xs:element name="DataLimit" type="xs:string" minOccurs="0"/>
             <xs:element name="RoamingEnabled" type="xs:boolean"/>
             <xs:element name="AdditionalServices" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
@@ -29,9 +30,9 @@
 
     <xs:complexType name="CustomerDetails"> <!-- sub variable -->
         <xs:sequence>
-            <xs:element name="Name" type="xs:string"/>
+            <xs:element name="Name" type="tns:NonEmptyString"/>
             <xs:element name="Address" type="tns:Address"/>
-            <xs:element name="ContactNumber" type="xs:string"/>
+            <xs:element name="ContactNumber" type="tns:NonEmptyString"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -44,7 +45,8 @@
         </xs:sequence>
     </xs:complexType>
 
-    <!-- test Request TODO: needed for validation?-->
+    <!--pabandom be sito-->
+    <!-- test Request TODO: needed for validation? answer:needed, bet butent del sito veikia validation, why-->
     <xs:simpleType name="NonEmptyString">
         <xs:restriction base="xs:string">
             <xs:minLength value="1"/>
@@ -69,14 +71,6 @@
         </xs:complexType>
     </xs:element>
 
-<!--    &lt;!&ndash; Get Order Document List Request &ndash;&gt;
-    <xs:element name="GetOrderDocumentListRequest">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="ServiceId" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>-->
     <!-- Get Order Document List Request -->
     <xs:element name="GetOrderDocumentListRequest">
         <xs:complexType/>
@@ -109,8 +103,26 @@
         </xs:complexType>
     </xs:element>
 
-    <!-- Get Order Document By Id Request -->
+    <!-- Update Order Document By Id Request -->
     <xs:element name="UpdateOrderDocumentByIdRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="OrderDocument" type="tns:OrderDocument"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Update Order Document By Id response -->
+    <xs:element name="UpdateOrderDocumentByIdResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="OrderDocument" type="tns:OrderDocument"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Get Order Document By Id Request -->
+    <xs:element name="DeleteOrderDocumentByIdRequest">
         <xs:complexType>
             <xs:sequence>
                 <xs:element name="ServiceId" type="xs:string"/>
@@ -119,10 +131,22 @@
     </xs:element>
 
     <!-- Get Order Document By Id response -->
-    <xs:element name="UpdateOrderDocumentByIdResponse">
+    <xs:element name="DeleteOrderDocumentByIdResponse">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="OrderDocument" type="tns:OrderDocument"/>
+                <xs:element name="OrderDeletedMessage" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Operation Response -->
+    <xs:element name="Response">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Status" type="tns:NonEmptyString"/>
+                <xs:element name="ErrorCode" type="xs:string"/>
+                <xs:element name="Message" type="xs:string"/>
+                <xs:element name="Error" type="xs:string"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>

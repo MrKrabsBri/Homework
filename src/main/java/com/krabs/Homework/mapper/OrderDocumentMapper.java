@@ -21,6 +21,8 @@ public class OrderDocumentMapper {
                 .subscriptionId(soapOrderDocument.getSubscriptionId())
                 .serviceDetailsEntity(mapServiceDetailsSoapToEntity(soapOrderDocument))
                 .customerDetailsEntity(mapCustomerDetailsSoapToEntity(soapOrderDocument))
+                .isVipCustomer(soapOrderDocument.isVIPCustomer())
+                .specialOffer(soapOrderDocument.getSpecialOffer())
                 .build();
     }
 
@@ -32,6 +34,8 @@ public class OrderDocumentMapper {
         soapOrderDocument.setSubscriptionId(entity.getSubscriptionId());
         soapOrderDocument.setServiceDetails(mapServiceDetailsEntityToSoap(entity.getServiceDetailsEntity()));
         soapOrderDocument.setCustomerDetails(mapCustomerDetailsEntityToSoap(entity.getCustomerDetailsEntity()));
+        soapOrderDocument.setVIPCustomer(entity.getIsVipCustomer());// pakeiciau kai pasikeite Boolean is primitive.
+        soapOrderDocument.setSpecialOffer(entity.getSpecialOffer());
         return soapOrderDocument;
     }
 
@@ -65,7 +69,7 @@ public class OrderDocumentMapper {
         ServiceDetails soap = new ServiceDetails();
         soap.setPlanType(entity.getPlanType());
         soap.setDataLimit(entity.getDataLimit());
-        soap.setRoamingEnabled(entity.isRoamingEnabled());
+        soap.setRoamingEnabled(entity.getRoamingEnabled());
         soap.getAdditionalServices().addAll(entity.getAdditionalServices());
         return soap;
     }
