@@ -67,7 +67,6 @@
 			<groupId>wsdl4j</groupId>
 			<artifactId>wsdl4j</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>jakarta.xml.bind</groupId>
 			<artifactId>jakarta.xml.bind-api</artifactId>
