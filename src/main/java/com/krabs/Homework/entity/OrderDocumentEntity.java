@@ -8,12 +8,14 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OrderDocumentEntity {
-    @Id
+public class OrderDocumentEntity extends AbstractOrderDocumentEntity<String> {
+   /* @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE) // maybe needed more params
-    private int id;
+    private int id;*/
+    @Id
     @Column(unique = true)
     private String serviceId;
+
     @NonNull
     private String serviceType;
     @NonNull
@@ -28,4 +30,10 @@ public class OrderDocumentEntity {
     private CustomerDetailsEntity customerDetailsEntity;
     private Boolean isVipCustomer;
     private String specialOffer;
+
+    @Override
+    public String getId() {
+        return serviceId;
+    }
+
 }

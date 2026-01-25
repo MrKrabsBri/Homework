@@ -22,8 +22,8 @@ public class OrderDocumentEndpoint {
     @PayloadRoot(namespace = "http://customercontract.com", localPart = "CreateOrderDocumentRequest")
     @ResponsePayload
     public CreateOrderDocumentResponse createOrderDocument(@RequestPayload CreateOrderDocumentRequest request){
-        if (true)
-        throw new DuplicateOrderDocumentException("a","b","c"); // shows nothing
+        /*if (true)
+        throw new DuplicateOrderDocumentException("a","b","c"); // shows nothing*/
 
         orderDocumentTransformationService.transform(request);
         CreateOrderDocumentResponse response = orderDocumentService.createOrderDocumentSoapResponse();

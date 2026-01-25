@@ -5,7 +5,6 @@ import com.customercontract.OrderDocument;
 import org.springframework.stereotype.Component;
 
 @Component
-//@Service?
 public class OrderDocumentTransformationService {
 
     private String vipCustomerId = "123456789";

@@ -1,9 +1,5 @@
 package com.krabs.Homework.mapper;
 
-import com.customercontract.Address;
-import com.customercontract.CustomerDetails;
-import com.customercontract.OrderDocument;
-import com.customercontract.ServiceDetails;
 import com.krabs.Homework.entity.AddressEntity;
 import com.krabs.Homework.entity.CustomerDetailsEntity;
 import com.krabs.Homework.entity.OrderDocumentEntity;
