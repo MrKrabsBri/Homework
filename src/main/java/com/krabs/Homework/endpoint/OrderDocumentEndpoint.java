@@ -2,7 +2,6 @@ package com.krabs.Homework.endpoint;
 
 import com.customercontract.*;
 import com.krabs.Homework.service.OrderDocumentService;
-import com.krabs.Homework.transformator.OrderDocumentTransformationService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,15 +15,14 @@ import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
 public class OrderDocumentEndpoint {
     private final Logger LOGGER = LoggerFactory.getLogger(OrderDocumentEndpoint.class);
     private final OrderDocumentService orderDocumentService;
-    private final OrderDocumentTransformationService orderDocumentTransformationService;
 
     @PayloadRoot(namespace = "http://customercontract.com", localPart = "CreateOrderDocumentRequest")
     @ResponsePayload
     public CreateOrderDocumentResponse createOrderDocument(@RequestPayload CreateOrderDocumentRequest request){
-
         LOGGER.info("Creating order document.");
         CreateOrderDocumentResponse response = orderDocumentService.createOrderDocument(request);
         LOGGER.info("Order document created.");
+
         return response;
     }
 
@@ -59,6 +57,4 @@ public class OrderDocumentEndpoint {
 
         return orderDocumentService.deleteOrderDocumentById(request);
     }
-
-
 }
