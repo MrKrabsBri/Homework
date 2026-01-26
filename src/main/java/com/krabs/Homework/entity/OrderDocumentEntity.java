@@ -9,13 +9,10 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class OrderDocumentEntity extends AbstractOrderDocumentEntity<String> {
-   /* @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE) // maybe needed more params
-    private int id;*/
+
     @Id
     @Column(unique = true)
     private String serviceId;
-
     @NonNull
     private String serviceType;
     @NonNull

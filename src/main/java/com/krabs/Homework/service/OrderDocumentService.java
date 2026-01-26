@@ -8,6 +8,8 @@ import com.krabs.Homework.exception.OrderDocumentNotFoundException;
 import com.krabs.Homework.mapper.OrderDocumentMapper;
 import com.krabs.Homework.mapper.OrderDocumentUpdateMapper;
 import com.krabs.Homework.repository.CustomerContractRepository;
+import com.krabs.Homework.transformator.OrderDocumentTransformationService;
+import com.krabs.Homework.validator.OrderDocumentValidator;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,30 +26,48 @@ public class OrderDocumentService {
     private final CustomerContractRepository repository;
     private final OrderDocumentMapper orderDocumentMapper;
     private final OrderDocumentUpdateMapper orderDocumentUpdateMapper;
+    private final OrderDocumentTransformationService orderDocumentTransformationService;
+    private final OrderDocumentValidator orderDocumentValidator;
 
     private final Logger LOGGER = LoggerFactory.getLogger(OrderDocumentService.class);
 
-    public void createOrderDocument(CreateOrderDocumentRequest request) {
-        OrderDocumentEntity entity = orderDocumentMapper.mapOrderDocumentSoapToEntity(request.getOrderDocument());
-        try {
-            repository.save(entity);
-            repository.flush();
-        } catch (DataIntegrityViolationException e) {
-            throw new DuplicateServiceIdException(
-                    "Service with ID " + entity.getServiceId() + " already exists", e
-            );
+    public CreateOrderDocumentResponse createOrderDocument(CreateOrderDocumentRequest request) {
+        orderDocumentTransformationService.transform(request.getOrderDocument());
+        String missingFieldError = orderDocumentValidator.validateMandatoryFields(request.getOrderDocument());
+
+        CreateOrderDocumentResponse createOrderDocumentResponse = new CreateOrderDocumentResponse();
+        if (missingFieldError != null) {
+            Response errorResponse = new Response();
+            errorResponse.setStatus("Error");
+            errorResponse.setErrorCode("400");
+            errorResponse.setMessage(missingFieldError);
+            createOrderDocumentResponse.setResponse(errorResponse);
+        } else {
+            OrderDocumentEntity entity = orderDocumentMapper.mapOrderDocumentSoapToEntity(request.getOrderDocument());
+            try {
+                Response response = new Response();
+                if (request.getOrderDocument().getError() != null) {
+                    response.setStatus("Error");
+                    response.setErrorCode("400");
+                    response.setMessage("Invalid contact number format");
+                } else {
+                    repository.save(entity);
+                    repository.flush();
+                    response.setStatus("Success");
+                    response.setMessage("Service activated successfully");
+                }
+                createOrderDocumentResponse.setResponse(response);
+            } catch (DataIntegrityViolationException e) {
+                throw new DuplicateServiceIdException(
+                        "Service with ID " + entity.getServiceId() + " already exists", e
+                );
+            }
         }
+        return createOrderDocumentResponse;
     }
 
-    public CreateOrderDocumentResponse createOrderDocumentSoapResponse(){
-        CreateOrderDocumentResponse response = new CreateOrderDocumentResponse();
-
-        response.setStatus("success");
-
-        return response;
-    }
-
-    public List<OrderDocument> getOrderDocumentList() {
+    public GetOrderDocumentListResponse getOrderDocumentList() {
+        GetOrderDocumentListResponse response = new GetOrderDocumentListResponse();
         List<OrderDocumentEntity> orderDocumentEntityList = repository.findAll();
         List<OrderDocument> orderDocumentSoapList = new ArrayList<>();
 
@@ -55,61 +75,63 @@ public class OrderDocumentService {
             orderDocumentSoapList.add(orderDocumentMapper.mapOrderDocumentEntityToSoap(entity));
         }
         LOGGER.info("Orders were successfully retrieved");
-
-        return orderDocumentSoapList;
-    }
-
-    public GetOrderDocumentListResponse getOrderDocumentListSoapResponse() {
-        GetOrderDocumentListResponse response = new GetOrderDocumentListResponse();
-        response.getOrderDocument().addAll(getOrderDocumentList());
+        response.getOrderDocument().addAll(orderDocumentSoapList);
 
         return response;
     }
 
-    public OrderDocument getOrderDocumentById(GetOrderDocumentByIdRequest request){
+    public GetOrderDocumentByIdResponse getOrderDocumentById(GetOrderDocumentByIdRequest request){
+        GetOrderDocumentByIdResponse response = new GetOrderDocumentByIdResponse();
         OrderDocumentEntity orderDocumentEntity = repository.findByServiceId(request.getServiceId())
                 .orElseThrow(() ->
                         new OrderDocumentNotFoundException("Order with ID " + request.getServiceId() + " does not exist"));
         LOGGER.info("Order with ID {} was successfully retrieved", request.getServiceId());
 
-        return orderDocumentMapper.mapOrderDocumentEntityToSoap(orderDocumentEntity);
-    }
-
-    public GetOrderDocumentByIdResponse getOrderDocumentByIdSoapResponse(GetOrderDocumentByIdRequest request){
-        GetOrderDocumentByIdResponse response = new GetOrderDocumentByIdResponse();
-        response.setOrderDocument(getOrderDocumentById(request));
-
+        response.setOrderDocument(orderDocumentMapper.mapOrderDocumentEntityToSoap(orderDocumentEntity));
         return response;
     }
 
     public UpdateOrderDocumentByIdResponse updateOrderDocumentById(UpdateOrderDocumentByIdRequest request){
-
         OrderDocumentEntity orderDocumentEntityFromDB = repository.findByServiceId(request.getOrderDocument().getServiceId())
                 .orElseThrow(() -> new OrderDocumentNotFoundException
                         ("Order document of id " + request.getOrderDocument().getServiceId() + " not found"));
 
-        //TODO:play around with customerID, break it
+        orderDocumentTransformationService.transform(request.getOrderDocument()); // should set request.error
+        String missingFieldError = orderDocumentValidator.validateMandatoryFields(request.getOrderDocument()); // mandatories +
 
-        orderDocumentUpdateMapper.updateUserEntity(orderDocumentMapper.mapOrderDocumentSoapToEntity(
-                request.getOrderDocument()), orderDocumentEntityFromDB );
-        orderDocumentEntityFromDB.setCustomerId(""); //TODO: This causes problems, TEST CASE: this is not validated during entry in DB
-        //TODO: Here we check for data validity before persisting to db
+        UpdateOrderDocumentByIdResponse updateOrderDocumentByIdResponse = new UpdateOrderDocumentByIdResponse();
+
+        if (missingFieldError != null) {
+            Response errorResponse = new Response();
+            errorResponse.setStatus("Error");
+            errorResponse.setErrorCode("400");
+            errorResponse.setMessage(missingFieldError);
+            updateOrderDocumentByIdResponse.setResponse(errorResponse);
+            return updateOrderDocumentByIdResponse;
+        }
+        if (request.getOrderDocument().getError() != null){
+            Response errorResponse = new Response();
+            errorResponse.setStatus("Error");
+            errorResponse.setErrorCode("400");
+            errorResponse.setMessage("Invalid contact number format");
+            updateOrderDocumentByIdResponse.setResponse(errorResponse);
+            return updateOrderDocumentByIdResponse;
+        }
+        OrderDocumentEntity newValues =
+                orderDocumentMapper.mapOrderDocumentSoapToEntity(request.getOrderDocument());
+
+        orderDocumentUpdateMapper.updateUserEntity(newValues, orderDocumentEntityFromDB);
+
         repository.save(orderDocumentEntityFromDB);
+        Response success = new Response();
+        success.setStatus("Success");
+        success.setMessage("Service updated successfully");
+        updateOrderDocumentByIdResponse.setResponse(success);
 
-        UpdateOrderDocumentByIdResponse response = new UpdateOrderDocumentByIdResponse();
-        response.setOrderDocument(orderDocumentMapper.mapOrderDocumentEntityToSoap(orderDocumentEntityFromDB));
-        return response;
-    }
-
-    public GetOrderDocumentByIdResponse updateOrderDocumentByIdSoapResponse(GetOrderDocumentByIdRequest request){
-        GetOrderDocumentByIdResponse response = new GetOrderDocumentByIdResponse();
-        response.setOrderDocument(getOrderDocumentById(request));
-
-        return response;
+        return updateOrderDocumentByIdResponse;
     }
 
     public DeleteOrderDocumentByIdResponse deleteOrderDocumentById(DeleteOrderDocumentByIdRequest request){
-
         OrderDocumentEntity orderDocumentEntity = repository.findByServiceId(request.getServiceId())
                 .orElseThrow(() ->
                         new OrderDocumentNotFoundException("Order with ID " + request.getServiceId() + " does not exist"));
@@ -119,7 +141,4 @@ public class OrderDocumentService {
         response.setOrderDeletedMessage("Entry with id " + request.getServiceId() + " was deleted successfully");
         return response;
     }
-
-    //TODO: error response method that sets Error, ErrorCode, ErrodMessage to the response if request fails!!!
-
 }

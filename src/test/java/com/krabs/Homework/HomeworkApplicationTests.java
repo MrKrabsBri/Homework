@@ -18,38 +18,4 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 class HomeworkApplicationTests {
 
-	@Mock
-	CustomerContractRepository repository;
-
-	@Mock
-	OrderDocumentMapper orderDocumentMapper;
-
-	@Mock
-	OrderDocumentUpdateMapper orderDocumentUpdateMapper;
-
-	@InjectMocks
-	OrderDocumentService service;
-
-	@Test
-	void shouldCreateOrderDocument() {
-		// given
-		// use the actual generated class
-		OrderDocument orderDocumentSoap = new OrderDocument();
-		CreateOrderDocumentRequest request = new CreateOrderDocumentRequest();
-		request.setOrderDocument(orderDocumentSoap);
-
-		OrderDocumentEntity entity = new OrderDocumentEntity();
-		when(orderDocumentMapper.mapOrderDocumentSoapToEntity(orderDocumentSoap))
-				.thenReturn(entity);
-
-		// when
-		service.createOrderDocument(request);
-
-		// then
-		verify(repository).save(entity);
-		verify(repository).flush();
-	}
-
-
-
 }

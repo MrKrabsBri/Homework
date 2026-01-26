@@ -20,7 +20,7 @@ import java.util.List;
 @EnableWs
 public class WebServiceConfiguration implements WsConfigurer {
 
-    //private PayloadValidatingInterceptor validatingInterceptor;
+    private final String WSDL_NAME = "OrderDocumentService";
 
     @Bean
     public ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(
@@ -34,15 +34,15 @@ public class WebServiceConfiguration implements WsConfigurer {
 
     @Bean
     public XsdSchema customerContractSchema() {
-        return new SimpleXsdSchema(new ClassPathResource("order-document.xsd"));
+        return new SimpleXsdSchema(new ClassPathResource(FileConstants.XSD_FILENAME));
     }
 
-    @Bean(name = "myService")
+    @Bean(name = WSDL_NAME)
     public DefaultWsdl11Definition defaultWsdl11Definition(XsdSchema xsd) {
         DefaultWsdl11Definition wsdl11Definition = new DefaultWsdl11Definition();
         wsdl11Definition.setPortTypeName("theDocument");
         wsdl11Definition.setLocationUri("/ws");
-        wsdl11Definition.setTargetNamespace("http://customercontract.com/");
+        wsdl11Definition.setTargetNamespace(FileConstants.NAMESPACE_NAME);
         wsdl11Definition.setSchema(xsd);
         return wsdl11Definition;
     }
@@ -61,5 +61,4 @@ public class WebServiceConfiguration implements WsConfigurer {
     public void addInterceptors(List<EndpointInterceptor> interceptors) {
         interceptors.add(validatingInterceptor(customerContractSchema()));
     }
-
 }

@@ -7,32 +7,34 @@
     <!-- Reference -->
     <xs:complexType name = "OrderDocument">
         <xs:sequence>
-            <xs:element name="ServiceId" type="tns:NonEmptyString"/>
-            <xs:element name="ServiceType" type="tns:NonEmptyString"/>
+            <xs:element name="ServiceId" type="tns:NonEmptyString"/> <!--type="xs:string" minOccurs="0"/>-->
+            <xs:element name="ServiceType" type="tns:NonEmptyString"/> <!--type="xs:string" minOccurs="0"/>-->
             <!--TODO:Check-->
-            <xs:element name="CustomerId" type="tns:NonEmptyString"/>
-            <xs:element name="SubscriptionId" type="tns:NonEmptyString"/>
-            <xs:element name="ServiceDetails" type="tns:ServiceDetails"/><!--buvo dar ir minOccurs="1"-->
+            <xs:element name="CustomerId" type="tns:NonEmptyString"/> <!--type="xs:string" minOccurs="0"/>-->
+            <xs:element name="SubscriptionId" type="tns:NonEmptyString"/> <!--type="xs:string" minOccurs="0"/>-->
+            <xs:element name="ServiceDetails" type="tns:ServiceDetails"/>
             <xs:element name="CustomerDetails" type="tns:CustomerDetails"/>
             <xs:element name="VIPCustomer" type="xs:boolean" minOccurs="0"/>
             <xs:element name="SpecialOffer" type="xs:string" minOccurs="0"/>
+            <xs:element name="Error" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="ServiceDetails"> <!-- sub variable -->
         <xs:sequence>
-            <xs:element name="PlanType" type="tns:NonEmptyString"/>
+            <xs:element name="PlanType" type="tns:NonEmptyString"/>  <!--type="xs:string" minOccurs="0"/>-->
             <xs:element name="DataLimit" type="xs:string" minOccurs="0"/>
-            <xs:element name="RoamingEnabled" type="xs:boolean"/>
+            <xs:element name="RoamingEnabled" type="xs:boolean" minOccurs="0"/>
+           <!-- <xs:element name="RoamingEnabled" type="xs:boolean"/>-->
             <xs:element name="AdditionalServices" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="CustomerDetails"> <!-- sub variable -->
         <xs:sequence>
-            <xs:element name="Name" type="tns:NonEmptyString"/>
+            <xs:element name="Name" type="tns:NonEmptyString"/>  <!--type="xs:string" minOccurs="0"/>-->
             <xs:element name="Address" type="tns:Address"/>
-            <xs:element name="ContactNumber" type="tns:NonEmptyString"/>
+            <xs:element name="ContactNumber" type="tns:NonEmptyString"/>  <!--type="xs:string" minOccurs="0"/>-->
         </xs:sequence>
     </xs:complexType>
 
@@ -44,6 +46,18 @@
             <xs:element name="Country" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
+
+    <!-- Operation Response -->
+    <xs:element name="Response">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Status" type="tns:NonEmptyString"/>
+                <xs:element name="ErrorCode" type="xs:string"/>
+                <xs:element name="Message" type="xs:string"/>
+                <xs:element name="Error" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
 
     <xs:simpleType name="NonEmptyString">
         <xs:restriction base="xs:string">
@@ -64,7 +78,7 @@
     <xs:element name="CreateOrderDocumentResponse">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="status" type="xs:string"/>
+                <xs:element ref="tns:Response"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
@@ -111,10 +125,10 @@
     </xs:element>
 
     <!-- Update Order Document By Id response -->
-    <xs:element name="UpdateOrderDocumentByIdResponse">
+     <xs:element name="UpdateOrderDocumentByIdResponse">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="OrderDocument" type="tns:OrderDocument"/>
+                <xs:element ref="tns:Response"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
@@ -136,19 +150,6 @@
             </xs:sequence>
         </xs:complexType>
     </xs:element>
-
-    <!-- Operation Response -->
-    <xs:element name="Response">
-        <xs:complexType>
-            <xs:sequence>
-                <xs:element name="Status" type="tns:NonEmptyString"/>
-                <xs:element name="ErrorCode" type="xs:string"/>
-                <xs:element name="Message" type="xs:string"/>
-                <xs:element name="Error" type="xs:string"/>
-            </xs:sequence>
-        </xs:complexType>
-    </xs:element>
-
 </xs:schema>
 
 

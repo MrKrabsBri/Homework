@@ -5,18 +5,23 @@ import com.krabs.Homework.entity.AddressEntity;
 import com.krabs.Homework.entity.CustomerDetailsEntity;
 import com.krabs.Homework.entity.OrderDocumentEntity;
 import com.krabs.Homework.entity.ServiceDetailsEntity;
+import com.krabs.Homework.exception.DuplicateServiceIdException;
 import com.krabs.Homework.exception.OrderDocumentNotFoundException;
 import com.krabs.Homework.mapper.OrderDocumentMapper;
 import com.krabs.Homework.mapper.OrderDocumentUpdateMapper;
 import com.krabs.Homework.repository.CustomerContractRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.krabs.Homework.transformator.OrderDocumentTransformationService;
+import com.krabs.Homework.validator.OrderDocumentValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,45 +37,82 @@ public class OrderDocumentServiceTest {
     CustomerContractRepository repository;
     @Mock
     OrderDocumentMapper orderDocumentMapper;
-    @Mock
+    @Spy
     OrderDocumentUpdateMapper orderDocumentUpdateMapper;
+    @Mock
+    private OrderDocumentTransformationService orderDocumentTransformationService;
+    @Mock
+    private OrderDocumentValidator orderDocumentValidator;
     @InjectMocks
     OrderDocumentService service;
-    OrderDocumentEntity orderDocumentCorrect = new OrderDocumentEntity();
 
-    @BeforeEach
-    void setUp() {
-        ServiceDetailsEntity serviceDetailsEntityCorrect = ServiceDetailsEntity.builder()
-                .planType("Plan Type 1")
-                .dataLimit("10GB")
-                .roamingEnabled(true)
-                .additionalServices(List.of("Service1"))
-                .build();
+    private OrderDocument fullyValidOrderDocument() {
+        OrderDocument doc = new OrderDocument();
+        doc.setServiceId("SVC-123");
+        doc.setServiceType("MOBILE");
+        doc.setCustomerId("999999999");
+        doc.setSubscriptionId("SUB-001");
 
-        AddressEntity addressEntity = AddressEntity.builder()
-                .street("Fake street")
-                .city("Faketown")
-                .postalCode("00000")
-                .country("Fakelandia")
-                .build();
+        ServiceDetails sd = new ServiceDetails();
+        sd.setPlanType("5G");
+        sd.setDataLimit("10GB");
+        sd.setRoamingEnabled(true);
+        sd.getAdditionalServices().add("SMS");
+        doc.setServiceDetails(sd);
 
-        CustomerDetailsEntity customerDetailsEntityCorrect = CustomerDetailsEntity.builder()
-                .name("John Doe")
-                .addressEntity(addressEntity)
-                .contactNumber("0123456789")
-                .build();
+        Address address = new Address();
+        address.setStreet("Main St");
+        address.setCity("Stockholm");
+        address.setPostalCode("12345");
+        address.setCountry("Sweden");
 
-        orderDocumentCorrect = OrderDocumentEntity.builder()
-                .serviceId("001")
-                .serviceType("Internet")
-                .customerId("112233")
-                .subscriptionId("1")
-                .serviceDetailsEntity(serviceDetailsEntityCorrect)
-                .customerDetailsEntity(customerDetailsEntityCorrect) // extra  fields
+        CustomerDetails cd = new CustomerDetails();
+        cd.setName("John Doe");
+        cd.setContactNumber("+37061234567");
+        cd.setAddress(address);
+
+        doc.setCustomerDetails(cd);
+
+        return doc;
+    }
+
+    private OrderDocumentEntity fullyPopulatedEntity() {
+        ServiceDetailsEntity sd = new ServiceDetailsEntity();
+        sd.setPlanType("5G");
+        sd.setDataLimit("10GB");
+        sd.setRoamingEnabled(true);
+        sd.setAdditionalServices(new ArrayList<>(List.of("SMS")));
+
+        AddressEntity addr = new AddressEntity();
+        addr.setStreet("Main");
+        addr.setCity("Stockholm");
+        addr.setPostalCode("12345");
+        addr.setCountry("Sweden");
+
+        CustomerDetailsEntity cd = new CustomerDetailsEntity();
+        cd.setName("John Doe");
+        cd.setContactNumber("+37061234567");
+        cd.setAddressEntity(addr);
+
+        return OrderDocumentEntity.builder()
+                .serviceId("SVC-123")
+                .serviceType("MOBILE")
+                .customerId("999999999")
+                .subscriptionId("SUB-001")
+                .serviceDetailsEntity(sd)
+                .customerDetailsEntity(cd)
+                .isVipCustomer(false)
+                .specialOffer(null)
                 .build();
     }
 
-        @Test
+    private OrderDocument createOrderDocumentWithContact(String contactNumber) {
+        OrderDocument order = fullyValidOrderDocument();
+        order.getCustomerDetails().setContactNumber(contactNumber);
+        return order;
+    }
+
+    @Test
     void shouldCreateOrderDocument() {
         OrderDocument orderDocument = new OrderDocument();
         CreateOrderDocumentRequest request = new CreateOrderDocumentRequest();
@@ -88,24 +130,20 @@ public class OrderDocumentServiceTest {
 
     @Test
     void shouldPersistOrderDocument() {
-        // Arrange
         OrderDocument requestDoc = new OrderDocument();
-        requestDoc.setServiceId("SVC-1"); // set some data
+        requestDoc.setServiceId("SVC-1");
 
         CreateOrderDocumentRequest request = new CreateOrderDocumentRequest();
         request.setOrderDocument(requestDoc);
 
-        // Stub the mapper to return an entity
         OrderDocumentEntity entity = new OrderDocumentEntity();
         entity.setServiceId("SVC-1");
 
         when(orderDocumentMapper.mapOrderDocumentSoapToEntity(requestDoc))
                 .thenReturn(entity);
 
-        // Act
         service.createOrderDocument(request);
 
-        // Assert
         verify(orderDocumentMapper).mapOrderDocumentSoapToEntity(requestDoc);
         verify(repository, times(1)).save(entity);
         verify(repository, times(1)).flush();
@@ -113,7 +151,6 @@ public class OrderDocumentServiceTest {
 
     @Test
     void createOrderDocument_shouldSaveEntity() {
-        // given
         OrderDocument soapDoc = new OrderDocument();
         soapDoc.setServiceId("001");
 
@@ -134,39 +171,100 @@ public class OrderDocumentServiceTest {
     }
 
     @Test
-    void createOrderDocumentSoapResponse_shouldReturnSuccess() {
-        CreateOrderDocumentResponse response =
-                service.createOrderDocumentSoapResponse();
+    void createOrderDocument_shouldReturnSuccessResponse() {
+        OrderDocument validSoap = fullyValidOrderDocument();
 
-        // then
+        CreateOrderDocumentRequest request = new CreateOrderDocumentRequest();
+        request.setOrderDocument(validSoap);
+
+        OrderDocumentEntity mappedEntity = new OrderDocumentEntity();
+        mappedEntity.setServiceId("SVC-123");
+
+        when(orderDocumentValidator.validateMandatoryFields(validSoap))
+                .thenReturn(null);
+
+        when(orderDocumentMapper.mapOrderDocumentSoapToEntity(validSoap))
+                .thenReturn(mappedEntity);
+
+        CreateOrderDocumentResponse response =
+                service.createOrderDocument(request);
+
         assertNotNull(response);
-        assertEquals("success", response.getStatus());
+        assertNotNull(response.getResponse());
+        assertEquals("Success", response.getResponse().getStatus());
+        assertEquals(
+                "Service activated successfully",
+                response.getResponse().getMessage()
+        );
+
+        verify(orderDocumentTransformationService)
+                .transform(validSoap);
+        verify(repository).save(mappedEntity);
+        verify(repository).flush();
+    }
+
+    @Test
+    void createOrderDocument_shouldThrowException_whenDuplicateServiceId() {
+        OrderDocument validSoap = fullyValidOrderDocument();
+
+        CreateOrderDocumentRequest request = new CreateOrderDocumentRequest();
+        request.setOrderDocument(validSoap);
+
+        OrderDocumentEntity mappedEntity = new OrderDocumentEntity();
+        mappedEntity.setServiceId("SVC-123");
+
+        when(orderDocumentValidator.validateMandatoryFields(validSoap))
+                .thenReturn(null);
+
+        when(orderDocumentMapper.mapOrderDocumentSoapToEntity(validSoap))
+                .thenReturn(mappedEntity);
+
+        doThrow(new DataIntegrityViolationException("duplicate"))
+                .when(repository)
+                .save(mappedEntity);
+
+        DuplicateServiceIdException exception =
+                assertThrows(
+                        DuplicateServiceIdException.class,
+                        () -> service.createOrderDocument(request)
+                );
+
+        assertTrue(
+                exception.getMessage().contains("Service with ID SVC-123")
+        );
+
+        verify(orderDocumentTransformationService)
+                .transform(validSoap);
+        verify(repository).save(mappedEntity);
     }
 
     @Test
     void getOrderDocumentById_shouldReturnOrderDocument() {
+        String serviceId = "SERVICE_123";
+
         GetOrderDocumentByIdRequest request = new GetOrderDocumentByIdRequest();
-        request.setServiceId("12345");
+        request.setServiceId(serviceId);
 
         OrderDocumentEntity entity = new OrderDocumentEntity();
-        entity.setServiceId("12345");
+        entity.setServiceId(serviceId);
 
-        OrderDocument soapDoc = new OrderDocument();
-        soapDoc.setServiceId("12345");
+        OrderDocument soapDocument = new OrderDocument();
 
-        when(repository.findByServiceId("12345"))
+        when(repository.findByServiceId(serviceId))
                 .thenReturn(Optional.of(entity));
-
         when(orderDocumentMapper.mapOrderDocumentEntityToSoap(entity))
-                .thenReturn(soapDoc);
+                .thenReturn(soapDocument);
 
-        OrderDocument result = service.getOrderDocumentById(request);
+        GetOrderDocumentByIdResponse response =
+                service.getOrderDocumentById(request);
 
-        assertNotNull(result);
-        assertEquals("12345", result.getServiceId());
+        assertNotNull(response);
+        assertNotNull(response.getOrderDocument());
+        assertEquals(soapDocument, response.getOrderDocument());
 
-        verify(repository).findByServiceId("12345");
-        verify(orderDocumentMapper).mapOrderDocumentEntityToSoap(entity);
+        verify(repository).findByServiceId(serviceId);
+        verify(orderDocumentMapper)
+                .mapOrderDocumentEntityToSoap(entity);
     }
 
     @Test
@@ -192,13 +290,13 @@ public class OrderDocumentServiceTest {
         when(orderDocumentMapper.mapOrderDocumentEntityToSoap(entity))
                 .thenReturn(soapDoc);
 
-        OrderDocument result = service.getOrderDocumentById(request);
+        GetOrderDocumentByIdResponse response = service.getOrderDocumentById(request);
 
-        assertNotNull(result);
-        System.out.println(result.getCustomerId());
-        System.out.println(result.isVIPCustomer());
-        assertEquals("123456789", result.getServiceId());
-        assertEquals(true, result.isVIPCustomer());
+        assertNotNull(response);
+        System.out.println(response.getOrderDocument().getCustomerId());
+        System.out.println(response.getOrderDocument().isVIPCustomer());
+        assertEquals("123456789", response.getOrderDocument().getServiceId());
+        assertEquals(true, response.getOrderDocument().isVIPCustomer());
 
         verify(repository).findByServiceId("123456789");
         verify(orderDocumentMapper).mapOrderDocumentEntityToSoap(entity);
@@ -227,10 +325,10 @@ public class OrderDocumentServiceTest {
         when(orderDocumentMapper.mapOrderDocumentEntityToSoap(entity))
                 .thenReturn(soapDoc);
 
-        OrderDocument result = service.getOrderDocumentById(request);
+        GetOrderDocumentByIdResponse response = service.getOrderDocumentById(request);
 
-        assertNotNull(result);
-        assertNull(result.isVIPCustomer());
+        assertNotNull(response);
+        assertNull(response.getOrderDocument().isVIPCustomer());
 
         verify(repository).findByServiceId("1111111111");
         verify(orderDocumentMapper).mapOrderDocumentEntityToSoap(entity);
@@ -267,10 +365,10 @@ public class OrderDocumentServiceTest {
         when(orderDocumentMapper.mapOrderDocumentEntityToSoap(entity))
                 .thenReturn(soapDoc);
 
-        OrderDocument result = service.getOrderDocumentById(request);
+        GetOrderDocumentByIdResponse response = service.getOrderDocumentById(request);
 
-        assertNotNull(result);
-        assertEquals("ExtraData", result.getSpecialOffer());
+        assertNotNull(response);
+        assertEquals("ExtraData", response.getOrderDocument().getSpecialOffer());
 
         verify(repository).findByServiceId("150");
         verify(orderDocumentMapper).mapOrderDocumentEntityToSoap(entity);
@@ -299,12 +397,17 @@ public class OrderDocumentServiceTest {
         when(orderDocumentMapper.mapOrderDocumentEntityToSoap(entity2))
                 .thenReturn(soap2);
 
-        List<OrderDocument> result = service.getOrderDocumentList();
+        GetOrderDocumentListResponse response =
+                service.getOrderDocumentList();
 
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        assertEquals("SVC-1", result.get(0).getServiceId());
-        assertEquals("SVC-2", result.get(1).getServiceId());
+        assertNotNull(response);
+        assertNotNull(response.getOrderDocument());
+        assertEquals(2, response.getOrderDocument().size());
+
+        assertEquals("SVC-1",
+                response.getOrderDocument().get(0).getServiceId());
+        assertEquals("SVC-2",
+                response.getOrderDocument().get(1).getServiceId());
 
         verify(repository).findAll();
         verify(orderDocumentMapper, times(2))
@@ -313,51 +416,58 @@ public class OrderDocumentServiceTest {
 
     @Test
     void updateOrderDocumentById_shouldUpdateAndReturnUpdatedDocument() {
-        OrderDocument requestSoap = new OrderDocument();
-        requestSoap.setServiceId("SVC-100");
+        String serviceId = "SVC-123";
+
+        OrderDocumentEntity existingEntity = fullyPopulatedEntity();
+        existingEntity.setServiceId(serviceId);
+        existingEntity.setServiceType("OLD_TYPE");
+
+        when(repository.findByServiceId(serviceId))
+                .thenReturn(Optional.of(existingEntity));
+
+        OrderDocument updatedSoap = fullyValidOrderDocument();
+        updatedSoap.setServiceId(serviceId);
+        updatedSoap.setServiceType("UPDATED_TYPE");
 
         UpdateOrderDocumentByIdRequest request =
                 new UpdateOrderDocumentByIdRequest();
-        request.setOrderDocument(requestSoap);
+        request.setOrderDocument(updatedSoap);
 
-        OrderDocumentEntity entityFromDb = new OrderDocumentEntity();
-        entityFromDb.setServiceId("SVC-100");
-        entityFromDb.setCustomerId("OLD");
+        OrderDocumentEntity mappedNewEntity = fullyPopulatedEntity();
+        mappedNewEntity.setServiceType("UPDATED_TYPE");
 
-        OrderDocumentEntity mappedFromSoap = new OrderDocumentEntity();
-        mappedFromSoap.setServiceId("SVC-100");
+        when(orderDocumentValidator.validateMandatoryFields(updatedSoap))
+                .thenReturn(null);
 
-        OrderDocument updatedSoap = new OrderDocument();
-        updatedSoap.setServiceId("SVC-100");
-
-        when(repository.findByServiceId("SVC-100"))
-                .thenReturn(Optional.of(entityFromDb));
-
-        when(orderDocumentMapper.mapOrderDocumentSoapToEntity(requestSoap))
-                .thenReturn(mappedFromSoap);
-
-        when(orderDocumentMapper.mapOrderDocumentEntityToSoap(entityFromDb))
-                .thenReturn(updatedSoap);
+        when(orderDocumentMapper.mapOrderDocumentSoapToEntity(updatedSoap))
+                .thenReturn(mappedNewEntity);
 
         UpdateOrderDocumentByIdResponse response =
                 service.updateOrderDocumentById(request);
 
         assertNotNull(response);
-        assertNotNull(response.getOrderDocument());
-        assertEquals("SVC-100",
-                response.getOrderDocument().getServiceId());
+        assertNotNull(response.getResponse());
+        assertEquals("Success", response.getResponse().getStatus());
+        assertEquals(
+                "Service updated successfully",
+                response.getResponse().getMessage()
+        );
 
-        verify(repository).findByServiceId("SVC-100");
+        verify(orderDocumentTransformationService)
+                .transform(updatedSoap);
         verify(orderDocumentUpdateMapper)
-                .updateUserEntity(mappedFromSoap, entityFromDb);
-        verify(repository).save(entityFromDb);
-        verify(orderDocumentMapper)
-                .mapOrderDocumentEntityToSoap(entityFromDb);
+                .updateUserEntity(mappedNewEntity, existingEntity);
+        verify(repository)
+                .save(existingEntity);
+
+        assertEquals(
+                "UPDATED_TYPE",
+                existingEntity.getServiceType()
+        );
     }
 
     @Test
     void updateOrderDocumentById_shouldThrowException_whenNotFound() {
-        // given
         OrderDocument requestSoap = new OrderDocument();
         requestSoap.setServiceId("MISSING");
 
@@ -380,7 +490,6 @@ public class OrderDocumentServiceTest {
 
     @Test
     void deleteOrderDocumentById_shouldDeleteEntityAndReturnResponse() {
-        // given
         DeleteOrderDocumentByIdRequest request =
                 new DeleteOrderDocumentByIdRequest();
         request.setServiceId("SVC-999");
@@ -391,11 +500,9 @@ public class OrderDocumentServiceTest {
         when(repository.findByServiceId("SVC-999"))
                 .thenReturn(Optional.of(entity));
 
-        // when
         DeleteOrderDocumentByIdResponse response =
                 service.deleteOrderDocumentById(request);
 
-        // then
         assertNotNull(response);
         assertEquals(
                 "Entry with id SVC-999 was deleted successfully",
@@ -408,7 +515,6 @@ public class OrderDocumentServiceTest {
 
     @Test
     void deleteOrderDocumentById_shouldThrowException_whenNotFound() {
-        // given
         DeleteOrderDocumentByIdRequest request =
                 new DeleteOrderDocumentByIdRequest();
         request.setServiceId("MISSING");
@@ -416,7 +522,6 @@ public class OrderDocumentServiceTest {
         when(repository.findByServiceId("MISSING"))
                 .thenReturn(Optional.empty());
 
-        // when + then
         assertThrows(
                 OrderDocumentNotFoundException.class,
                 () -> service.deleteOrderDocumentById(request)
@@ -424,5 +529,62 @@ public class OrderDocumentServiceTest {
 
         verify(repository).findByServiceId("MISSING");
         verify(repository, never()).delete(any());
+    }
+
+    @Test
+    void updateOrderDocumentById_shouldResetVipCustomerIfCustomerIdIsNotVip() {
+        String serviceId = "SVC-123";
+
+        OrderDocumentEntity existingEntity = fullyPopulatedEntity();
+        existingEntity.setServiceId(serviceId);
+        existingEntity.setCustomerId("123456789");
+        existingEntity.setIsVipCustomer(true);
+
+        when(repository.findByServiceId(serviceId))
+                .thenReturn(Optional.of(existingEntity));
+
+        OrderDocument updatedSoap = fullyValidOrderDocument();
+        updatedSoap.setServiceId(serviceId);
+        updatedSoap.setCustomerId("999999999");
+        updatedSoap.setServiceType("UPDATED_TYPE");
+
+        UpdateOrderDocumentByIdRequest request =
+                new UpdateOrderDocumentByIdRequest();
+        request.setOrderDocument(updatedSoap);
+
+        OrderDocumentEntity mappedNewEntity = fullyPopulatedEntity();
+        mappedNewEntity.setCustomerId("999999999");
+        mappedNewEntity.setIsVipCustomer(false);
+
+        when(orderDocumentValidator.validateMandatoryFields(updatedSoap))
+                .thenReturn(null);
+
+        when(orderDocumentMapper.mapOrderDocumentSoapToEntity(updatedSoap))
+                .thenReturn(mappedNewEntity);
+
+        UpdateOrderDocumentByIdResponse response =
+                service.updateOrderDocumentById(request);
+
+        assertNotNull(response);
+        assertNotNull(response.getResponse());
+        assertEquals("Success", response.getResponse().getStatus());
+
+        verify(orderDocumentTransformationService)
+                .transform(updatedSoap);
+        verify(orderDocumentUpdateMapper)
+                .updateUserEntity(mappedNewEntity, existingEntity);
+        verify(repository)
+                .save(existingEntity);
+
+        assertFalse(existingEntity.getIsVipCustomer());
+    }
+
+    @Test
+    void createOrderDocument_shouldNotSetErrorForValidContactNumber() {
+        OrderDocument validOrder = createOrderDocumentWithContact("+370612345678");
+
+        orderDocumentTransformationService.transform(validOrder);
+
+        assertNull(validOrder.getError(), "Valid contact number should not set error");
     }
 }
