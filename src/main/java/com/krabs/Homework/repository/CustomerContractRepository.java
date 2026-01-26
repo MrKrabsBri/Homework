@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 @Validated
-public interface CustomerContractRepository extends JpaRepository<OrderDocumentEntity, Long> {
+public interface CustomerContractRepository extends JpaRepository<OrderDocumentEntity, String> {
     Optional<OrderDocumentEntity> findByServiceId(String serviceId);
 
 }

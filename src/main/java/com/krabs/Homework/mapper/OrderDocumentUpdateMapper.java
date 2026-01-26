@@ -1,9 +1,5 @@
 package com.krabs.Homework.mapper;
 
-import com.customercontract.Address;
-import com.customercontract.CustomerDetails;
-import com.customercontract.OrderDocument;
-import com.customercontract.ServiceDetails;
 import com.krabs.Homework.entity.AddressEntity;
 import com.krabs.Homework.entity.CustomerDetailsEntity;
 import com.krabs.Homework.entity.OrderDocumentEntity;
@@ -18,11 +14,6 @@ public class OrderDocumentUpdateMapper {
     public void updateUserEntity(OrderDocumentEntity newOrderDocument,
                                  OrderDocumentEntity orderDocumentEntityFromDB) {
 
-        //is request/orderDocument padaryti entity,
-        // paimti to entity values
-        // primapinti jas prie orderDocumentEntity/
-        //TODO: NULL CHECKS!!!
-        //TODO: TESTS
         orderDocumentEntityFromDB.setServiceType(newOrderDocument.getServiceType());
         orderDocumentEntityFromDB.setCustomerId(newOrderDocument.getCustomerId());
         orderDocumentEntityFromDB.setSubscriptionId(newOrderDocument.getSubscriptionId());
@@ -34,17 +25,16 @@ public class OrderDocumentUpdateMapper {
 
         ServiceDetailsEntity existingServiceDetails = orderDocumentEntityFromDB.getServiceDetailsEntity();
         ServiceDetailsEntity newServiceDetails = newOrderDocument.getServiceDetailsEntity();
-        // Update scalar fields
+
         existingServiceDetails.setPlanType(newServiceDetails.getPlanType());
         existingServiceDetails.setDataLimit(newServiceDetails.getDataLimit());
         existingServiceDetails.setRoamingEnabled(newServiceDetails.getRoamingEnabled());
 
-        // Update collections safely
         if (newServiceDetails.getAdditionalServices() != null) {
             if (existingServiceDetails.getAdditionalServices() == null) {
                 existingServiceDetails.setAdditionalServices(new ArrayList<>());
             }
-            existingServiceDetails.getAdditionalServices().clear(); // if you want to replace old list
+            existingServiceDetails.getAdditionalServices().clear();
             existingServiceDetails.getAdditionalServices().addAll(newServiceDetails.getAdditionalServices());
         }
 
@@ -59,5 +49,7 @@ public class OrderDocumentUpdateMapper {
         updatedCustomerDetails.setContactNumber(newOrderDocument.getCustomerDetailsEntity().getContactNumber());
         orderDocumentEntityFromDB.setCustomerDetailsEntity(updatedCustomerDetails);
 
+        orderDocumentEntityFromDB.setIsVipCustomer(newOrderDocument.getIsVipCustomer());
+        orderDocumentEntityFromDB.setSpecialOffer(newOrderDocument.getSpecialOffer());
     }
 }

@@ -11,7 +11,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ServiceDetailsEntity {
-   // @NonNull
     private String planType;
     private String dataLimit;
     private Boolean roamingEnabled;
